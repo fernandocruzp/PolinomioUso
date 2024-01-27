@@ -249,23 +249,19 @@ PolinomioNodo* leerPolinomioDesdeArchivo(const char* nombreArchivo) {
 
     char buffer[256];
     while (fgets(buffer, sizeof(buffer), file)) {
-        // Encuentra el último espacio para separar el exponente del coeficiente
-        char *espacio = strrchr(buffer, ' ');
-        if (!espacio) {
-            // Error en el formato de la línea
-            continue;
+        Coeficiente coef;
+        int exp = 0;
+        char* token = strtok(buffer, "x^");
+        if (token != NULL) {
+            coef = leer(tipo, token);
+            token = strtok(NULL, "x^");
+            if (token != NULL) {
+                exp = atoi(token);
+            }
+        } else {
+            continue; // Línea vacía o mal formada
         }
-
-        int exp;
-        if (sscanf(espacio + 1, "%d", &exp) != 1) {
-            // Error leyendo el exponente
-            continue;
-        }
-
-        // Finaliza el string del coeficiente justo antes del espacio
-        *espacio = '\0';
-        Coeficiente coef = leer(tipo, buffer);
-
+        
         PolinomioNodo* nuevoNodo = crearNodo(coef, exp);
         if (cabeza == NULL) {
             cabeza = nuevoNodo;
@@ -279,20 +275,26 @@ PolinomioNodo* leerPolinomioDesdeArchivo(const char* nombreArchivo) {
     return cabeza;
 }
 
-void escribirPolinomioEnArchivo(const char* nombreArchivo, PolinomioNodo* p){
-  FILE* archivo = fopen(nombreArchivo, "w");
-  if (!archivo) {
-    perror("Error al abrir el archivo");
-    return;
-  }
-  PolinomioNodo* actual=p;
-  fprintf(archivo, "%d\n", actual->valor.tipo);
-  while (actual != NULL) {
-    char* coeficienteStr=cadena(actual->valor);
-    fprintf(archivo, "%s, %d\n", coeficienteStr, actual->exponente);
-    free(coeficienteStr);
-    // Avanzar al siguiente nodo
-    actual = actual->siguiente;
-  }
-  fclose(archivo);
+void escribirPolinomioEnArchivo(const char* nombreArchivo, PolinomioNodo* p) {
+    FILE* archivo = fopen(nombreArchivo, "w");
+    if (!archivo) {
+        perror("Error al abrir el archivo");
+        return;
+    }
+
+    if (p != NULL) {
+        fprintf(archivo, "%d\n", p->valor.tipo); // Escribe el tipo de coeficiente en la primera línea
+        while (p != NULL) {
+            if (p->exponente == 0) {
+                fprintf(archivo, "%s\n", cadena(p->valor)); // Solo el coeficiente para exponente 0
+            } else if (p->exponente == 1) {
+                fprintf(archivo, "%sx\n", cadena(p->valor)); // Coeficiente y 'x' para exponente 1
+            } else {
+                fprintf(archivo, "%sx^%d\n", cadena(p->valor), p->exponente); // Caso general
+            }
+            p = p->siguiente;
+        }
+    }
+    fclose(archivo);
 }
+
